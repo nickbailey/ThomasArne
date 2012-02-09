@@ -1,0 +1,23 @@
+ThomasArne is a database framework based on Postgresql with python
+support for the storage and manipulation of musical and performance
+data, using Lilypond as a presentation agent.
+
+Thomas (Thomas the Note Engine, aka ToNE) refers to the SQL part of
+the processing; Arne (Annotated Retrieval of Note Events) refers to
+the presentation part.
+
+Thomas Arne was a rather good English composer:
+
+	http://en.wikipedia.org/wiki/Thomas_Arne
+
+The project is in its initial stages, but has been used for a couple
+of projects involving performance and harmonic analysis. We intend to
+let it grow organically through application to problems rather
+than second guess what the potential user community might want.
+
+Contributors:
+
+Stuart Pullinger
+Jenni MacRitchie
+Nick Bailey (nick at n hyphen ism dot org)
+
