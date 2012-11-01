@@ -450,16 +450,42 @@ ALTER FUNCTION public.approxequatepitch(p1 spoff_pitch, p2 spoff_pitch) OWNER TO
 
 CREATE FUNCTION comparepitch(p1 spoff_pitch, p2 spoff_pitch) RETURNS integer
     LANGUAGE plpythonu
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT
     AS $$
 from spoff import greaterThanPitch, lessThanPitch, equatePitch
-if greaterThanPitch(p1,p2):
-        return 1
-elif lessThanPitch(p1,p2):
-        return -1
-elif equatePitch(p1,p2):
+print
+print p1
+print p2
+# Postgresql's autovacuum uses this function
+# So it's going to get called with rests as p1 and p2.
+# We aren't allowed to return None.
+# So we define: two rests have the same pitch;
+#               a rest is lower than a pitch.
+# The test for a "rest" here is that the pitch is None
+
+if p1['pitch'] == None or p2['pitch'] == None :
+    if p1['pitch'] == None and p2['pitch'] == None :
         return 0
+    elif p1['pitch'] != None :
+        return 1
+    else :
+        return -1
+
+if greaterThanPitch(p1,p2):
+    print "greaterThanPitch returned", greaterThanPitch(p1,p2)
+    return 1
+elif lessThanPitch(p1,p2):
+    print "lessThanPitch returned", lessThanPitch(p1,p2)
+    return -1
+elif equatePitch(p1,p2):
+    print "equatePitch returned", equatePitch(p1,p2)
+    return 0
 else:
-        return p1
+    print "comparepitch:"
+    print p1
+    print p2
+    print "first value is neither less than, equal to or greater than the second"
 $$;
 
 

@@ -1,0 +1,15 @@
+Useful psql commands:
+
+    \t          Tuples only (turns off formatting)
+    \g <path>   Send query buffer to server; store results in file
+    \i          Perform ops from file as if typed
+
+
+
+ * As of about v9, it seems plpy2list (in spoff.py) is redundant.
+   It's getting called with list argument instead of strings of
+   the form '{1,2,3}'. The current version checkes the supplied
+   type and attempts to "do the right thing", which might become
+   and unnecessary overhead.
+   
+   

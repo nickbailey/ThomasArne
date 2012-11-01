@@ -261,9 +261,13 @@ def greaterThanPitch(source_pitch, dest_pitch):
 #sp = 4,1,5	dp = 2,1,5
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
-	elif dest_pitch['octave'] > source_pitch['octave']:
+#	elif dest_pitch['octave'] > source_pitch['octave']:
+#		return True
+#	elif dest_pitch['octave'] < source_pitch['octave']:
+#		return False
+	elif source_pitch['octave'] > dest_pitch['octave']:
 		return True
-	elif dest_pitch['octave'] < source_pitch['octave']:
+	elif source_pitch['octave'] < dest_pitch['octave']:
 		return False
 	elif pitch_order[source_pitch['pitch'] % 7] > pitch_order[dest_pitch['pitch'] % 7]:
 		return True
@@ -657,6 +661,10 @@ def mxmlKeySig2lily(mxml_key):
 
 def plpy2list(valuestring):
 	# '{2,3,5,676}'
+	# Make sure we actually got a string!
+	if not isinstance(valuestring, str):
+		return valuestring
+	
 	#Eurggh too clever
 	return [int(val) if val != '' else 0 for val in valuestring.strip('{}()').split(',')]
 	#return [int('0'+val) for val in valuestring.strip('{}()').split(',')]
@@ -862,6 +870,8 @@ linegraphbias = 0
 						if noteGroup == None:
 							continue
 						mylog.write('doc2lilypond: noteid: %d, noteGroup: %s\n' % (note[0], noteGroup['type']))
+						mylog.write('Calling plpy2list with '+str(noteGroup['value'])+'\n')
+						mylog.flush()
 						valueList = plpy2list(noteGroup['value'])
 						mylog.flush()
 						if 'key' in noteGroup['type']:
