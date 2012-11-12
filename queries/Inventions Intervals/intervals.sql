@@ -37,9 +37,12 @@ begin;
                                 )
                            )
       from bi
-  where equateIntervalClass(bi.value, text2interval('M2'))
-        or equateIntervalClass(bi.value, text2interval('P4'))
-        or equateIntervalClass(bi.value, text2interval('M7'))
+  where not (equateIntervalType(bi.value, text2interval('M3'))
+             or equateIntervalType(bi.value, text2interval('m3'))
+             or equateIntervalType(bi.value, text2interval('M6'))
+             or equateIntervalType(bi.value, text2interval('m6'))
+             or equateIntervalType(bi.value, text2interval('P5'))
+             or equateIntervalType(bi.value, text2interval('P1')))
   ;
 
   select addtextundernotes('inv',
@@ -54,9 +57,12 @@ begin;
                                )
                           )
       from bi
-  where not equateIntervalClass(bi.value, text2interval('M2'))
-        and not equateIntervalClass(bi.value, text2interval('P4'))
-        and not equateIntervalClass(bi.value, text2interval('M7'))
+  where equateIntervalType(bi.value, text2interval('M3'))
+             or equateIntervalType(bi.value, text2interval('m3'))
+             or equateIntervalType(bi.value, text2interval('M6'))
+             or equateIntervalType(bi.value, text2interval('m6'))
+             or equateIntervalType(bi.value, text2interval('P5'))
+             or equateIntervalType(bi.value, text2interval('P1'))
   ;
 
   drop table bi;
@@ -98,9 +104,12 @@ begin;
                                 )
                            )
       from bi
-    where equateIntervalClass(bi.value, text2interval('M2'))
-          or equateIntervalClass(bi.value, text2interval('P4'))
-          or equateIntervalClass(bi.value, text2interval('M7'))
+    where not (equateIntervalType(bi.value, text2interval('M3'))
+             or equateIntervalType(bi.value, text2interval('m3'))
+             or equateIntervalType(bi.value, text2interval('M6'))
+             or equateIntervalType(bi.value, text2interval('m6'))
+             or equateIntervalType(bi.value, text2interval('P5'))
+             or equateIntervalType(bi.value, text2interval('P1')))
   ;
 
   select addtextundernotes('inv',
@@ -115,9 +124,12 @@ begin;
                                 )
                           )
       from bi
-    where not equateIntervalClass(bi.value, text2interval('M2'))
-          and not equateIntervalClass(bi.value, text2interval('P4'))
-          and not equateIntervalClass(bi.value, text2interval('M7'))
+    where equateIntervalType(bi.value, text2interval('M3'))
+             or equateIntervalType(bi.value, text2interval('m3'))
+             or equateIntervalType(bi.value, text2interval('M6'))
+             or equateIntervalType(bi.value, text2interval('m6'))
+             or equateIntervalType(bi.value, text2interval('P5'))
+             or equateIntervalType(bi.value, text2interval('P1'))
   ;
 
   drop table bi;

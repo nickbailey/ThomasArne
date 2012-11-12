@@ -558,6 +558,32 @@ $$;
 ALTER FUNCTION public.equateintervalclass(i1 spoff_interval, i2 spoff_interval) OWNER TO pgsuper;
 
 --
+-- Name: equateinterval(spoff_interval, spoff_interval); Type: FUNCTION; Schema: public; Owner: pgsuper
+--
+
+CREATE FUNCTION equateinterval(i1 spoff_interval, i2 spoff_interval) RETURNS boolean
+    LANGUAGE plpythonu
+    AS $$
+from spoff import equateInterval
+return equateInterval(i1, i2)
+$$;
+
+ALTER FUNCTION public.equateinterval(i1 spoff_interval, i2 spoff_interval) OWNER TO pgsuper;
+
+--
+-- Name: equateintervaltype(spoff_interval, spoff_interval); Type: FUNCTION; Schema: public; Owner: pgsuper
+--
+
+CREATE FUNCTION equateintervaltype(i1 spoff_interval, i2 spoff_interval) RETURNS boolean
+    LANGUAGE plpythonu
+    AS $$
+from spoff import equateIntervalType
+return equateIntervalType(i1, i2)
+$$;
+
+ALTER FUNCTION public.equateintervaltype(i1 spoff_interval, i2 spoff_interval) OWNER TO pgsuper;
+
+--
 -- Name: equatepitch(spoff_pitch, spoff_pitch); Type: FUNCTION; Schema: public; Owner: pgsuper
 --
 
