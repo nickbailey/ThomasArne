@@ -934,7 +934,14 @@ linegraphbias = 0
 						if textUnderLineNames != None and (startTie or not inTie):
 							for textUnderLine in textUnderLineNames:
 								textUnderLineValue = note[1].get(textUnderLine, '')
-								textUnderLineDict[textUnderLine].append('\\markup {\\column {%s }}' % ' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+								textUnderLineDict[textUnderLine].append('\\markup {\\column {')
+								# The order of lines has to be reversed for the column
+								# to be the right way up, so we'll just build a list of
+								# stings to use later
+								textUnderLineStrings = \
+								  { textUnderLine: [ ' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)) ] }
+								mylog.write("Starting chord. textUnderLineStrings="+str(textUnderLineStrings[textUnderLine])+'\n')
+								mylog.flush()
 						#output bargraph here
 						if barGraphLineNames != None:
 							for barGraphLine in barGraphLineNames:
@@ -960,7 +967,9 @@ linegraphbias = 0
 							if textUnderLineNames != None and (startTie or not inTie):
 								for textUnderLine in textUnderLineNames:
 									textUnderLineValue = note[1].get(textUnderLine, '')
-									textUnderLineDict[textUnderLine].append(' %s ' % ' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+									textUnderLineStrings[textUnderLine].append(' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+									mylog.write("Chord continues. textUnderLineStrings="+str(textUnderLineStrings[textUnderLine])+'\n')
+									mylog.flush()
 
 						else:
 							# end a chord, start a new chord
@@ -970,7 +979,14 @@ linegraphbias = 0
 							if textUnderLineNames != None and (startTie or not inTie):
 								for textUnderLine in textUnderLineNames:
 									textUnderLineValue = note[1].get(textUnderLine, '')
-									textUnderLineDict[textUnderLine].append('}} \\markup {\\column { %s ' % ' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+									textUnderLineStrings.append(' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+									mylog.write("End of chord; starting new. textUnderLineStrings="+str(textUnderLineStrings[textUnderLine])+'\n')
+									mylog.flush()
+									textUnderLineDict[textUnderLine].append(
+									  ' '.join( [ '\\line{ %s } ' % str(x) for x in \
+									       reversed(textUnderLineStrings[textUnderLine]) ] ))
+									textUnderLineStrings[textUnderLine]=[]
+									textUnderLineDict[textUnderLine].append('}} \\markup {\\column { ')
 							#output bargraph here
 							if barGraphLineNames != None:
 								for barGraphLine in barGraphLineNames:
@@ -994,7 +1010,14 @@ linegraphbias = 0
 						if textUnderLineNames != None and (startTie or not inTie):
 							for textUnderLine in textUnderLineNames:
 								textUnderLineValue = note[1].get(textUnderLine, '')
-								textUnderLineDict[textUnderLine].append('}} \\markup {%s} ' % ' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+								textUnderLineStrings[textUnderLine].append(' '.join(('\\tiny %s' % str(x) for x in textUnderLineValue)))
+								mylog.write("End of chord. textUnderLineStrings="+str(textUnderLineStrings[textUnderLine])+'\n')
+								mylog.flush()
+								textUnderLineDict[textUnderLine].append(
+									  ' '.join( [ '\\line{ %s } ' % str(x) for x in \
+									       reversed(textUnderLineStrings[textUnderLine]) ] ))
+								textUnderLineStrings[textUnderLine]=[]
+								textUnderLineDict[textUnderLine].append(' }}} ')
 
 					else:
 						#previousChord and currentChord are false
@@ -1049,12 +1072,21 @@ linegraphbias = 0
 				#lilyList.extend(noteStringList)	
 				if currentChord:
 					lilyList.append(' >%s ' % spoff_time2lily(previousDuration))
+					if textUnderLineNames != None:
+						for textUnderLine in textUnderLineNames:
+							mylog.write("Unfinished chord: textUnderLineStrings=%s\n"%str(textUnderLineStrings[textUnderLine]))
+							mylog.flush()
+							textUnderLineDict[textUnderLine].append(
+									  ' '.join( [ '\\line{ %s } ' % str(x) for x in \
+									       reversed(textUnderLineStrings[textUnderLine]) ] ))
+							textUnderLineDict[textUnderLine].append('}} %% %s\n\t\t' % textUnderLine)
 				previousChord = False
 				lilyList.append('\t\t\t}\n')
 				if textUnderLineNames != None:
 					for textUnderLine in textUnderLineNames:
 						lilyList.append('\t\t\t\\addlyrics { ' + ' '.join(textUnderLineDict.get(textUnderLine, '')) + ' }\n')
 				textUnderLineDict = {}
+				textUnderLineStrings = {}
 				textUnderLineNames = None
 
 				if barGraphLineNames != None:
