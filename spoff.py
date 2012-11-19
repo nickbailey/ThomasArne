@@ -1017,7 +1017,7 @@ linegraphbias = 0
 									  ' '.join( [ '\\line{ %s } ' % str(x) for x in \
 									       reversed(textUnderLineStrings[textUnderLine]) ] ))
 								textUnderLineStrings[textUnderLine]=[]
-								textUnderLineDict[textUnderLine].append(' }}} ')
+								textUnderLineDict[textUnderLine].append(' }} ')
 
 					else:
 						#previousChord and currentChord are false
