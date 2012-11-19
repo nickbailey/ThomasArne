@@ -135,3 +135,8 @@ begin;
   drop table bi;
 commit;
 
+\t\a\o out.ly
+select getlilypond('inv');
+\q
+
+

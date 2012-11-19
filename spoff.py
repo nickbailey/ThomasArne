@@ -656,7 +656,7 @@ def mxmlKeySig2lily(mxml_key):
 	pitch_class = naturals.keys()[naturals.values().index(spoff_key%7)].lower()
 	accidentalCount = spoff_key / 7
 	# flats and sharps
-	accidental = accidentalCount*'es' if accidentalCount < 0 else accidentalCount*'is'
+	accidental = (-accidentalCount)*'es' if accidentalCount < 0 else accidentalCount*'is'
 	return pitch_class + accidental 
 
 def plpy2list(valuestring):
