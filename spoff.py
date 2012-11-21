@@ -430,7 +430,7 @@ def interval2text(interval):
 	interval_class = intervalListP4.index(spoff_interval_class)	#+1 ???
 	if (interval_class in [2, 3, 6, 7]):
 		if (-2 <= spoff_modifier <= 1):
-			interval_string = interval_string + ['a', 'm', 'M', 'd'][spoff_modifier+2] + str(interval_class)
+			interval_string = interval_string + ['d', 'm', 'M', 'a'][spoff_modifier+2] + str(interval_class)
 		elif ( spoff_modifier < -2):
 			interval_string = interval_string + ('a' * spoff_modifier) + str(interval_class)
 		elif (spoff_modifier > 1):
