@@ -1,9 +1,88 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
 
+"""A Module to Represent Musical Information based on the Spiral of Fifths
+
+http://theses.gla.ac.uk/2133/
+
+This module supplies the primitive functions operating on
+time and pitch in Spoff format. For a full discussion of the
+method chose for the representation of musical time and pitch,
+refer to the doctoral thesis refered to above.
+
+Pitch is represented as a 3-tuple p :: (k, z, o) where
+k is the pitch in spiral-of-fifths representation and o is the
+octave number (4 being the octave beginning on Middle C).
+z is the number of chromatic steps within a minor second,
+which permits representation of scales such as 24-ET which
+is compound of two diatonic scales, being the superposition
+of two 12-ET scales, one offset by one half of a 12-ET semitone.
+For standard 12-ET, z is always 1. For 24-ET it would be 2
+(a consequence arising from there being two 12-ET scales
+overlapped).
+
+The Spoff pitch k of a note is determined by its position around
+the circle of fifths using the basis C=1, and can be read off
+from the following table.
+
+			bb	b	N	#	x
+		+------------------------------------------
+	F	|	-14	-7	0	7	14
+	C	|	-13	-6	1	8	15
+	G	|	-12	-5	2	9	16
+	D	|	-11	-4	3	10	17
+	A	|	-10	-3	4	11	18
+	E	|	-9	-2	5	12	19
+	B	|	-8	-1	6	13	20
+
+Intervals are also represented as a number of steps around the circle of
+fifths. Spoff intervals are represented as a 3-tuple i :: (i, z, o)
+where z and o have the meanings defined above and i is assigned
+as shown in the table below:
+
+			-14	-7	0	7	14
+		+------------------------------------------
+	0	|	dd1	d1	P1	A1	AA1
+	1	|	dd5	d5	P5	A5	AA5
+	2	|	d2	m2	M2	A2	AA2
+	3	|	d6	m6	M6	A6	AA6
+	4	|	d3	m3	M3	A3	AA3
+	5	|	d7	m7	M7	A7	AA7
+	6	|	d4	P4	a4	AA4	AAA4
+	
+	d = diminished; m = minor; P = perfect; M = major; A = augmented
+	dd = doubly diminished; AAA = tripply augmented etc.
+
+We also maintain the concept of "interval class", so perfect, diminished
+or augmented 4ths all belong to interval class 4 (as does anything with
+a 4 in the name).
+
+This does regrettably give rise to an asymmetry between the conversion
+between textual representation and spoff interval. When comparing interval
+sizes, the interval class as printed can be obtained from the spoff
+interval thus:
+
+	class = intervalListP4.index(i['interval'] % 7)
+
+The modulo operator effectively removes any specifier such as "minor",
+"augmented" etc from the spoff interval. Since in Python, the result of
+the modulus operator is always positive, the list intervalListP4 is
+supplied with the value of 6 given for a fourth, because the augmented
+fourth appears before any other sort when moving upwards around the
+circle of fifths. The lies intervalList is similar but contains a -1
+at the postion of a 4th (corresponding to a P4). In both cases, 0 is
+prepended in order that the list's index method contains 1 for a
+unison (rather than 0) to preserve the sanity of the developer.
+
+Module data:
+
+naturals:		Dictionary to convert from pitch class name to spoff code
+pitch_order:	List convertion from spoff to ordinal pitch (C=0)
+intervalList:	List to convert from spoff interval to interval class
+intervalListP4:	List to convert from spoff interval to interval class mod 7 (see above)
+"""
 from fractions import Fraction
 import re
-from math import *
-import types
+import math
 #import logging
 
 mylog = open('/tmp/mylog', 'a+')
@@ -25,18 +104,10 @@ mylog = open('/tmp/mylog', 'a+')
 #
 #####################################
 
-#####################################
-# Oooops! Check this against whiteboard
-#	-14	-7	0	7	14
-#0	dd1	d1	1st	a1	aa1
-#1	dd5	d5	P5	a5	aa5
-#2	d2	m2	M2	a2	aa2
-#3	d6	m6	M6	a6	aa6
-#4	d3	m3	M3	a3	aa3
-#5	d7	m7	M7	a7	aa7
-#6	dd4	d4	P4	a4	aa4
-#
-#####################################
+
+naturals = {'F':0, 'C':1, 'G':2, 'D':3, 'A':4, 'E':5, 'B':6}
+pitch_order = [3, 0, 4, 1, 5, 2, 6]
+
 #####################################
 # 
 #	-14	-7	0	7	14
@@ -50,13 +121,8 @@ mylog = open('/tmp/mylog', 'a+')
 #
 #####################################
 
-
-naturals = {'F':0, 'C':1, 'G':2, 'D':3, 'A':4, 'E':5, 'B':6}
-pitch_order = [3, 0, 4, 1, 5, 2, 6]
-interval_order = [1, 5, 2, 6, 3, 7, 4]
-
-intervalList = [0, 0, 2, 4, -1, 1, 3, 5]
-intervalListP4 = [0, 0, 2, 4, 6, 1, 3, 5]
+intervalList = [None, 0, 2, 4, -1, 1, 3, 5]
+intervalListP4 = [None, 0, 2, 4, 6, 1, 3, 5]
 
 majorScale = [ 	{'interval': 2, 'divisions_per_semitone': 1, 'octave': 0},
 		{'interval': 2, 'divisions_per_semitone': 1, 'octave': 0},
@@ -133,12 +199,18 @@ def addInterval(note, interval):
 	intervalFraction = Fraction(interval['interval'], interval['divisions_per_semitone'])
 	newNoteFraction = noteFraction + intervalFraction
 	newOctave = note['octave'] + interval['octave']
-	#TODO: this doesn't account for when the interval takes us over the octave boundary. see below
+	# The next line doesn't account for when the interval takes us
+	# over the octave boundary. See below
 	newNote = {'pitch': newNoteFraction.numerator, 'divisions_per_semitone': newNoteFraction.denominator, 'octave': newOctave}
-	if lessThanPitch(note, newNote):
+	# Need to add an extra octave if the interval between the note
+	# and the C above is less than or equal to the supplied argument
+	nextC = note.copy()
+	nextC['pitch'] = 1    # a C
+	nextC['octave'] += 1  # ... in the octave above
+	if intervalListP4.index(getInterval(note, nextC)['interval'] % 7) <= \
+	   intervalListP4.index(interval['interval'] % 7):
 		#we have wrapped around
-		newNote['octave'] = newNote['octave'] + 1
-	
+		newNote['octave'] = newNote['octave'] + 1	
 	return newNote
 	
 
@@ -431,7 +503,7 @@ def interval2text(interval):
 	if (interval_class in [2, 3, 6, 7]):
 		if (-2 <= spoff_modifier <= 1):
 			interval_string = interval_string + ['d', 'm', 'M', 'A'][spoff_modifier+2] + str(interval_class)
-		elif ( spoff_modifier < -2):
+		elif (spoff_modifier < -2):
 			interval_string = interval_string + ('A' * spoff_modifier) + str(interval_class)
 		elif (spoff_modifier > 1):
 			interval_string = interval_string + ('d' * abs(spoff_modifier)) + str(interval_class)
@@ -628,7 +700,7 @@ def reducePow2(number):
 	integralList = []
 	while residual != 0:
 		#modf returns a tuple of (fractional_part, integral_part)
-		pow2_fractional, pow2_integral = modf(log(residual, 2))
+		pow2_fractional, pow2_integral = math.modf(math.log(residual, 2))
 		integralList.append(pow2_integral)
 		residual = residual - 2**pow2_integral
 	return integralList
