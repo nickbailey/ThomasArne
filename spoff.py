@@ -79,6 +79,8 @@ naturals:		Dictionary to convert from pitch class name to spoff code
 pitch_order:	List convertion from spoff to ordinal pitch (C=0)
 intervalList:	List to convert from spoff interval to interval class
 intervalListP4:	List to convert from spoff interval to interval class mod 7 (see above)
+majorScale:     A list of intervals forming a one-octave major scale
+minorScale:     A list of intervals forming a one-octave harmonic minor scale
 """
 from fractions import Fraction
 import re
@@ -174,27 +176,15 @@ def clefSign2Number(clefSign):
 	#add or subtract number of semitones ( / 7z) - see pitch chapter
 	#return freq
 
-#def addInterval(source_note, interval):
-#	"""Add an interval to a note, both expressed in spoff format
-#
-#	"""
-#	source_note_pitch = source_note['pitch'] 
-#	source_note_dps = ['divisions_per_semitone']
-#	source_note_octave = source_note['octave'] 
-#	interval_interval = interval['interval'] 
-#	interval_dps = interval['divisions_per_semitone'] 
-#	interval_octave = interval['octave'] 
-#
-	#is the % statement the wrong way round?
-	#need to test this a bit more
-	#time for some paper calculations
-#	if source_note_dps < interval_dps and not (source_note_dps % interval_dps):
-#		#return result in higher dps
-#		result_pitch =  int(float(source_note_pitch) / source_note_dps * interval_dps) + interval_interval
-#		result_octave = source_octave + interval_octave
-#		return {'pitch': result_pitch, 'divisions_per_octave': interval_dps, 'octave': result_octave}
-
 def addInterval(note, interval):
+	"""Return the spoff pitch obtained by raising note by interval.
+
+	>>> [ pitch2text(addInterval(text2pitch(n), text2interval(i))) 
+	...   for (n,i) in
+	...     [('G4','M3'), ('F#3','m3'), ('Bb4','dd6'), ('B4','A1'), ('B4','AA1'), ('B4','d2')]
+	... ]
+	['B4', 'A3', 'Gbbb5', 'B#4', 'B##4', 'Cb5']
+	"""
 	noteFraction = Fraction(note['pitch'], note['divisions_per_semitone'])
 	intervalFraction = Fraction(interval['interval'], interval['divisions_per_semitone'])
 	newNoteFraction = noteFraction + intervalFraction
@@ -214,48 +204,27 @@ def addInterval(note, interval):
 	return newNote
 	
 
-#def getInterval(source_note, dest_note):
-	#"""Calculate the interval between 2 notes
-	#
-	#returns a dictionary containing the spoff_interval_type. The octave reveals any shift in octave in addition to that brought about by the interval. The direction will be +1 for up, -1 for down and 0 for unison"""
-	
-	#source_value = source_note['value']
-	#source_octave = source_note['octave']
-	#dest_value = dest_note['value']
-	#dest_octave = dest_note['octave']
-	
-	#if (source_note['type'] != 'pitch') or (dest_note['type'] != 'pitch'):
-		#interval_list = [None, None, None]
-	#if source_octave == dest_octave:
-		#if pitch_order[source_value % 7] < pitch_order[dest_value % 7]:
-			#interval_list = [dest_value-source_value, 0, 1]
-		#elif pitch_order[source_value % 7] > pitch_order[dest_value % 7]:
-			#interval_list = [dest_value-source_value, 0, -1]
-		#else:		#unison
-			#interval_list = [0, 0, 0]
-	#elif source_octave < dest_octave:
-		#if pitch_order[source_value % 7] < pitch_order[dest_value % 7]:
-			#interval_list = [dest_value-source_value, dest_octave-source_octave-1, 1]
-		#elif pitch_order[source_value % 7] > pitch_order[dest_value % 7]:
-			#interval_list = [dest_value-source_value, dest_octave-source_octave-1, 1]
-		#else:		#octave up
-			#interval_list = [0, dest_octave-source_octave-1, 1]
-	#elif source_octave > dest_octave:
-		#if pitch_order[source_value % 7] < pitch_order[dest_value % 7]:
-			#interval_list = [source_value-dest_value, source_octave-dest_octave, -1]
-		#elif pitch_order[source_value % 7] > pitch_order[dest_value % 7]:
-			#interval_list = [source_value-dest_value, source_octave-dest_octave, -1]
-		#else:		#octave down
-			#interval_list = [0, source_octave-dest_octave, -1]
-	#return {'source_work_id': source_note['work_id'],
-		#'source_note_id': source_note['note_id'],
-		#'dest_work_id': dest_note['work_id'],
-		#'dest_note_id': dest_note['note_id'],
-		#'value': interval_list[0],
-		#'direction': interval_list[1],
-		#'octave': interval_list[2]}
-
 def getInterval(source_pitch, dest_pitch):
+	"""Calculate the interval between two notes
+	
+	The source and destination pitches are in spoff format.
+	
+	>>> # Source pitch a little below dest_pitch
+	>>> interval2text(getInterval(text2pitch('Eb4'), text2pitch('F#4')))
+	'0+A2'
+	>>> # Source a long way below destination
+	>>> interval2text(getInterval(text2pitch('G2'), text2pitch('D6')))
+	'3+P5'
+	>>> # Source a little above destination
+	>>> interval2text(getInterval(text2pitch('D5'), text2pitch('B4')))
+	'0+m3'
+	>>> # Source a long way above destination
+	>>> interval2text(getInterval(text2pitch('F#4'), text2pitch('C1')))
+	'3+A4'
+	>>> # Exotic
+	>>> interval2text(getInterval(text2pitch('F##4'), text2pitch('Gbbb4')))
+	'0+ddddd2'
+	"""
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
 	sourceNoteFraction = Fraction(source_pitch['pitch'], source_pitch['divisions_per_semitone'])
@@ -504,26 +473,23 @@ def interval2text(interval):
 		if (-2 <= spoff_modifier <= 1):
 			interval_string = interval_string + ['d', 'm', 'M', 'A'][spoff_modifier+2] + str(interval_class)
 		elif (spoff_modifier < -2):
-			interval_string = interval_string + ('A' * spoff_modifier) + str(interval_class)
+			interval_string = interval_string + ('d' * -spoff_modifier) + str(interval_class)
 		elif (spoff_modifier > 1):
-			interval_string = interval_string + ('d' * abs(spoff_modifier)) + str(interval_class)
+			interval_string = interval_string + ('A' * spoff_modifier) + str(interval_class)
 	elif (interval_class == 4):
 		if (spoff_modifier == -1):
 			interval_string = interval_string + 'P' + str(interval_class)
 		elif (spoff_modifier < -1):
-			interval_string = interval_string + ('d' * abs(spoff_modifier+1)) + str(interval_class)
+			interval_string = interval_string + ('d' * -(spoff_modifier+1)) + str(interval_class)
 		elif (spoff_modifier > -1):
-			interval_string = interval_string + ('A' * abs(spoff_modifier+1)) + str(interval_class)
-	elif (interval_class == 5):
+			interval_string = interval_string + ('A' * (spoff_modifier+1)) + str(interval_class)
+	elif (interval_class in [0,1,5]):
 		if (spoff_modifier == 0):
 			interval_string = interval_string + 'P' + str(interval_class)
 		elif (spoff_modifier < 0):
-			interval_string = interval_string + ('d' * abs(spoff_modifier)) + str(interval_class)
+			interval_string = interval_string + ('d' * -spoff_modifier) + str(interval_class)
 		elif (spoff_modifier > 0):
-			interval_string = interval_string + ('A' * abs(spoff_modifier)) + str(interval_class)
-	elif (interval_class in [0,1]):
-		#unison or octave?
-		interval_string = interval_string + 'P1'
+			interval_string = interval_string + ('A' * spoff_modifier) + str(interval_class)
 	else:
 		#failure
 		raise ValueError
@@ -595,7 +561,7 @@ def pitch2text(pitch):
 
 def text2pitch(text):
 	#TODO extend to pitches with sesqui- and semi- intervals ie. dps>1
-	regex = re.compile('([a-gA-G])([#b])*(-?[0-9]*)')
+	regex = re.compile('([a-gA-G])([#b]*)(-?[0-9]*)')
 	matches = regex.match(text)
 	pitchClass = naturals[matches.group(1).upper()]
 	accidental = matches.group(2) if matches.group(2) else ''
@@ -1182,3 +1148,6 @@ linegraphbias = 0
 	lilyList.append('}\n')
 	return ''.join(lilyList)
 
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
