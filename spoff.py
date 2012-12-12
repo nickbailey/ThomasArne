@@ -208,6 +208,7 @@ def getInterval(source_pitch, dest_pitch):
 	"""Calculate the interval between two notes
 	
 	The source and destination pitches are in spoff format.
+	Intervals are always calculated upwards from the lowest note.
 	
 	>>> # Source pitch a little below dest_pitch
 	>>> interval2text(getInterval(text2pitch('Eb4'), text2pitch('F#4')))
@@ -221,9 +222,9 @@ def getInterval(source_pitch, dest_pitch):
 	>>> # Source a long way above destination
 	>>> interval2text(getInterval(text2pitch('F#4'), text2pitch('C1')))
 	'3+A4'
-	>>> # Exotic
-	>>> interval2text(getInterval(text2pitch('F##4'), text2pitch('Gbbb4')))
-	'0+ddddd2'
+	>>> # Exotic (silly questions should produce silly, but correct answers)
+	>>> interval2text(getInterval(text2pitch('B##4'), text2pitch('Cbbb5')))
+	'0+dddddd2'
 	"""
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
@@ -281,6 +282,28 @@ def getInterval(source_pitch, dest_pitch):
 
 #TODO fix this for higher dps
 def lessThanPitch(source_pitch, dest_pitch):
+	"""Return true if source_pitch is (notationally) flatter than dest_pitch
+	
+	Note that this might not correspond with the fundamental frequency of the
+	source being less than the fundamental frequency of the destination. That
+	depends on the temperament. Frequency and pitch are not the same!
+	
+	>>> # Test gross and same-octave differences
+	>>> [lessThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in
+	...   [('A4','G2'), ('G1','A3'), ('D3','G3'), ('G3','D3')]
+	... ]
+	[False, True, True, False]
+	>>> # Enharmonic equivalences (not considered equal!)/crossing the octave
+	>>> [lessThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in 
+	...   [('Ab4','G#4'), ('G#4','Ab4'), ('C4','B4'), ('B4','C4')]
+	... ]
+	[False, True, True, False]
+	>>> # Accidentals differing on the same note
+	>>> [lessThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in 
+	...   [('Bb6','B6'), ('B6', 'Bb6')]
+	... ]
+	[True, False]
+	"""
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
 	elif dest_pitch['octave'] > source_pitch['octave']:
@@ -291,7 +314,7 @@ def lessThanPitch(source_pitch, dest_pitch):
 		return True
 	elif pitch_order[dest_pitch['pitch'] % 7] < pitch_order[source_pitch['pitch'] % 7]:
 		return False
-	elif (pitch_order[dest_pitch['pitch'] % 7] == pitch_order[source_pitch['pitch'] % 7]) and (pitch_order[dest_pitch['pitch'] / 7] > pitch_order[source_pitch['pitch'] / 7]):
+	elif (pitch_order[dest_pitch['pitch'] % 7] == pitch_order[source_pitch['pitch'] % 7]) and (pitch_order[dest_pitch['pitch'] / 7] < pitch_order[source_pitch['pitch'] / 7]):
 		# ie same note class, one note is flatter than the other
 		return True
 	else:
