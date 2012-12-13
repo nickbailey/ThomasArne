@@ -34,6 +34,15 @@ from the following table.
 	E	|	-9	-2	5	12	19
 	B	|	-8	-1	6	13	20
 
+The python code represents a pitch as a dictionary with the following keys:
+
+	pitch:                spoff pitch
+	divisions_per_octave: number of steps in a semitone
+	                      Currently, on 1 is supported; other scales
+	                      such as 24-ET which divide a semitone may require
+	                      other values
+	octave:               octave number (octave 4 contains middle C)
+
 Intervals are also represented as a number of steps around the circle of
 fifths. Spoff intervals are represented as a 3-tuple i :: (i, z, o)
 where z and o have the meanings defined above and i is assigned
@@ -61,7 +70,7 @@ between textual representation and spoff interval. When comparing interval
 sizes, the interval class as printed can be obtained from the spoff
 interval thus:
 
-	class = intervalListP4.index(i['interval'] % 7)
+	pitchClass = intervalListP4.index(i['interval'] % 7)
 
 The modulo operator effectively removes any specifier such as "minor",
 "augmented" etc from the spoff interval. Since in Python, the result of
@@ -72,6 +81,32 @@ circle of fifths. The lies intervalList is similar but contains a -1
 at the postion of a 4th (corresponding to a P4). In both cases, 0 is
 prepended in order that the list's index method contains 1 for a
 unison (rather than 0) to preserve the sanity of the developer.
+
+The python code represents an interval as a dictionary with the following keys:
+
+	interval:             spoff interval
+	divisions_per_octave: number of steps in a semitone
+	                      Currently, on 1 is supported; other scales
+	                      such as 24-ET which divide a semitone may require
+	                      other values
+	octave:               octave number (octave 4 contains middle C)
+
+
+Time is represented in spoff as an improper fraction of a crotchet (quarter-note)
+t :: (n,d) (where n is the numerator and d the denominator). The python
+code represents a time as a dictionary with the following keys:
+
+	crotchet_numerator:   numerator of time measured in crotchets
+	crotchet_denominator: denominator of time measured in crotchets
+
+Duration is represented as a dictionary with the following keys:
+
+	bar:                  number of bars
+	beat:                 number of beats additional to the above
+	division:             number of subdivision of a beat additional to above
+	                      (the default number of beat subdivisions is 8,
+	                      allowing for demisemiquavers)
+
 
 Module data:
 
@@ -298,11 +333,11 @@ def lessThanPitch(source_pitch, dest_pitch):
 	...   [('Ab4','G#4'), ('G#4','Ab4'), ('C4','B4'), ('B4','C4')]
 	... ]
 	[False, True, True, False]
-	>>> # Accidentals differing on the same note
+	>>> # Accidentals differing or not on the same note
 	>>> [lessThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in 
-	...   [('Bb6','B6'), ('B6', 'Bb6')]
+	...   [('Bb6','B6'), ('B6', 'Bb6'), ('G4','G4')]
 	... ]
-	[True, False]
+	[True, False, False]
 	"""
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
@@ -314,21 +349,36 @@ def lessThanPitch(source_pitch, dest_pitch):
 		return True
 	elif pitch_order[dest_pitch['pitch'] % 7] < pitch_order[source_pitch['pitch'] % 7]:
 		return False
-	elif (pitch_order[dest_pitch['pitch'] % 7] == pitch_order[source_pitch['pitch'] % 7]) and (pitch_order[dest_pitch['pitch'] / 7] < pitch_order[source_pitch['pitch'] / 7]):
-		# ie same note class, one note is flatter than the other
-		return True
 	else:
-		return False
+		# i.e. same note class, one note is flatter than the other
+		return pitch_order[dest_pitch['pitch'] / 7] < pitch_order[source_pitch['pitch'] / 7]
+
 
 #TODO fix this for higher dps
 def greaterThanPitch(source_pitch, dest_pitch):
+	"""Return true if source_pitch is (notationally) sharper than dest_pitch
+	
+	Note that this might not correspond with the fundamental frequency of the
+	source being less than the fundamental frequency of the destination. That
+	depends on the temperament. Frequency and pitch are not the same!
+	
+	>>> # Use same test cases as lessThanPitch().
+	>>> [greaterThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in
+	...   [('A4','G2'), ('G1','A3'), ('D3','G3'), ('G3','D3')]
+	... ]
+	[True, False, False, True]
+	>>> [greaterThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in 
+	...   [('Ab4','G#4'), ('G#4','Ab4'), ('C4','B4'), ('B4','C4')]
+	... ]
+	[True, False, False, True]
+	>>> [greaterThanPitch(text2pitch(s),text2pitch(d)) for (s,d) in 
+	...   [('Bb6','B6'), ('B6', 'Bb6'), ('G4','G4')]
+	... ]
+	[False, True, False]
+	"""
 #sp = 4,1,5	dp = 2,1,5
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
-#	elif dest_pitch['octave'] > source_pitch['octave']:
-#		return True
-#	elif dest_pitch['octave'] < source_pitch['octave']:
-#		return False
 	elif source_pitch['octave'] > dest_pitch['octave']:
 		return True
 	elif source_pitch['octave'] < dest_pitch['octave']:
@@ -337,28 +387,40 @@ def greaterThanPitch(source_pitch, dest_pitch):
 		return True
 	elif pitch_order[source_pitch['pitch'] % 7] < pitch_order[dest_pitch['pitch'] % 7]:
 		return False
-	elif (pitch_order[dest_pitch['pitch'] % 7] == pitch_order[source_pitch['pitch'] % 7]) and (pitch_order[source_pitch['pitch'] / 7] > pitch_order[dest_pitch['pitch'] / 7] ):
-		# ie same note class, one note is sharper than the other
-		return True
 	else:
-		return False
+		# i.e. same note class, one note is sharper than the other
+		return pitch_order[source_pitch['pitch'] / 7] < pitch_order[dest_pitch['pitch'] / 7]
+
+
 #TODO change this to take account of divs per semitone
 def equatePitch(source_pitch, dest_pitch):
+	"""Return true if both arguments are the same pitch (including accidental)
+	
+	>>> [ equatePitch(text2pitch(s), text2pitch(d)) for (s,d) in
+	...      [('C4','E4'), ('C#5','Db5'), ('G3','g3'), ('F2','F4')]
+	... ]
+	[False, False, True, False]
+	"""
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
-	elif (dest_pitch['octave'] == source_pitch['octave']) and (dest_pitch['pitch'] == source_pitch['pitch']):
-		return True
 	else:
-		return False
+		return (dest_pitch['octave'] == source_pitch['octave']) and \
+		       (dest_pitch['pitch'] == source_pitch['pitch'])
 
 #TODO change this to take account of divs per semitone
 def approxEquatePitch(source_pitch, dest_pitch):
+	"""Return true if both arguments have the same pitch, ignoring their octaves
+	
+	>>> [ approxEquatePitch(text2pitch(s), text2pitch(d)) for (s,d) in
+	...      [('C4','E4'), ('C#5','Db5'), ('G3','g3'), ('F2','F4')]
+	... ]
+	[False, False, True, True]
+	"""
 	if (source_pitch==None) or (dest_pitch==None):
 		return None
-	elif dest_pitch['pitch'] == source_pitch['pitch']:
-		return True
-	else:
-		return False
+	return dest_pitch['pitch'] == source_pitch['pitch']
+
+
 ################################
 ## Time functions
 ##
@@ -392,6 +454,21 @@ def equateTime(t1, t2):
 
 
 def addDuration(location, duration, beats=4, divisionsPerBeat=8):
+	"""Return the sum of two durations. Typically, the first might be
+	the score time and the second an offset
+	
+	>>> # Add 2 beats in 3/4 time from the second beat of bar 6
+	>>> st = addDuration({'bar':6, 'beat':2, 'division':0}, 
+	...                  {'bar':0, 'beat':2, 'division':0}, 3)
+	>>> st == {'bar':7, 'beat':1, 'division':0}
+	True
+	
+	>>> # Start at bar 100 in 4/4 time, beat 1; go back 7 bars, 2.5 beats
+	>>> st = addDuration({'bar':100, 'beat':1, 'division':0}, 
+	...                  {'bar':-7, 'beat':-2, 'division':-4})
+	>>> st == {'bar':92, 'beat':2, 'division':4}
+	True
+	"""
 	sourceBar = location['bar']
 	sourceBeat = location['beat']
 	sourceDiv = location['division']
